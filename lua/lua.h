@@ -2,6 +2,7 @@ class Lua {
 public:
 
 	Lua(const Bytecode& bytecode, const Ast& ast, const std::string& filePath, const bool& minimizeDiffs, const bool& unrestrictedAscii);
+	Lua(const Bytecode&, const Ast&, HANDLE, const bool&, const bool&);
 	~Lua();
 
 	void operator()();

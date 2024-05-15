@@ -1,6 +1,9 @@
 #include "..\main.h"
 
-Bytecode::Bytecode(const std::string& filePath) : filePath(filePath) {}
+Bytecode::Bytecode(const std::string &filePath) : filePath{filePath}, array{nullptr}, mode{MODE_FILE} {  }
+
+Bytecode::Bytecode(const std::string &name, const char *array, size_t size): 
+	filePath{name}, array{(uint8_t *)array}, mode{MODE_BYTES}, fileSize{size}, bytesUnread{size} {}
 
 Bytecode::~Bytecode() {
 	close_file();
@@ -11,7 +14,6 @@ Bytecode::~Bytecode() {
 }
 
 void Bytecode::operator()() {
-	// print_progress_bar();
 	open_file();
 	read_header();
 	prototypesTotalSize = bytesUnread - 1;
@@ -19,8 +21,9 @@ void Bytecode::operator()() {
 	close_file();
 	fileBuffer.clear();
 	fileBuffer.shrink_to_fit();
-	// erase_progress_bar();
 }
+
+bool Bytecode::isFileMode() const { return mode == MODE_FILE; }
 
 void Bytecode::read_header() {
 	read_file(5);
@@ -46,39 +49,45 @@ void Bytecode::read_prototypes() {
 		assert(fileBuffer.size() >= MIN_PROTO_SIZE, "Prototype is too short", filePath, DEBUG_INFO);
 		prototypes.emplace_back(new Prototype(*this));
 		(*prototypes.back())(unlinkedPrototypes);
-		// print_progress_bar(prototypesTotalSize - bytesUnread - 1, prototypesTotalSize);
 	}
 
 	assert(unlinkedPrototypes.size() == 1, "Failed to link main prototype", filePath, DEBUG_INFO);
 	main = unlinkedPrototypes.back();
-	assert((main->header.flags & BC_PROTO_VARARG)
-		&& main->header.parameters == 0
-		&& main->upvalues.size() == 0,
-		"Main prototype has invalid header", filePath, DEBUG_INFO);
 	prototypes.shrink_to_fit();
 }
 
 void Bytecode::open_file() {
-	file = CreateFileA(filePath.c_str(), GENERIC_READ, NULL, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
-	assert(file != INVALID_HANDLE_VALUE, "Unable to open file", filePath, DEBUG_INFO);
-	DWORD fileSizeHigh = 0;
-	fileSize = GetFileSize(file, &fileSizeHigh);
-	fileSize |= (uint64_t)fileSizeHigh << 32;
-	assert(fileSize >= MIN_FILE_SIZE, "File is too small or empty", filePath, DEBUG_INFO);
-	bytesUnread = fileSize;
+	if (isFileMode()) {
+		file = CreateFileA(filePath.c_str(), GENERIC_READ, NULL, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
+		assert(file != INVALID_HANDLE_VALUE, "Unable to open file", filePath, DEBUG_INFO);
+		DWORD fileSizeHigh = 0;
+		fileSize = GetFileSize(file, &fileSizeHigh);
+		fileSize |= (uint64_t)fileSizeHigh << 32;
+		assert(fileSize >= MIN_FILE_SIZE, "File is too small or empty", filePath, DEBUG_INFO);
+		bytesUnread = fileSize;
+	}
 }
 
 void Bytecode::close_file() {
-	if (file == INVALID_HANDLE_VALUE) return;
-	CloseHandle(file);
-	file = INVALID_HANDLE_VALUE;
+	if (isFileMode()) {
+		if (file == INVALID_HANDLE_VALUE) return;
+		CloseHandle(file);
+		file = INVALID_HANDLE_VALUE;
+	}
 }
 
 void Bytecode::read_file(const uint32_t& byteCount) {
 	assert(bytesUnread >= byteCount, "Read would exceed end of file", filePath, DEBUG_INFO);
 	fileBuffer.resize(byteCount);
-	DWORD bytesRead = 0;
-	assert(ReadFile(file, fileBuffer.data(), byteCount, &bytesRead, NULL) && !(byteCount - bytesRead), "Failed to read file", filePath, DEBUG_INFO);
+	if (isFileMode()) {
+		DWORD bytesRead = 0;
+		assert(ReadFile(file, fileBuffer.data(), byteCount, &bytesRead, NULL) && !(byteCount - bytesRead), "Failed to read file", filePath, DEBUG_INFO);
+	} else {
+		uint64_t base = fileSize - bytesUnread;
+		for (size_t i = 0; i < byteCount; ++i) {
+			fileBuffer[i] = array[base + i];
+		}
+	}
 	bytesUnread -= byteCount;
 }
 

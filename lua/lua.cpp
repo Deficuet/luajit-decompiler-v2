@@ -1,7 +1,16 @@
 #include "..\main.h"
 
-Lua::Lua(const Bytecode& bytecode, const Ast& ast, const std::string& filePath, const bool& minimizeDiffs, const bool& unrestrictedAscii)
-	: bytecode(bytecode), ast(ast), filePath(filePath), minimizeDiffs(minimizeDiffs), unrestrictedAscii(unrestrictedAscii) {}
+Lua::Lua(
+	const Bytecode& bytecode, 
+	const Ast& ast, 
+	const std::string& filePath, 
+	const bool& minimizeDiffs, 
+	const bool& unrestrictedAscii
+): bytecode{bytecode}, ast{ast}, filePath{filePath}, minimizeDiffs{minimizeDiffs}, unrestrictedAscii{unrestrictedAscii} {}
+
+Lua::Lua(const Bytecode &bytecode, const Ast &ast, HANDLE file, const bool &minimizeDiffs, const bool &unrestrictedAscii):
+	bytecode{bytecode}, ast{ast}, filePath{bytecode.filePath}, 
+	file{file}, minimizeDiffs{minimizeDiffs}, unrestrictedAscii{unrestrictedAscii} {  }
 
 Lua::~Lua() {
 	close_file();
@@ -806,7 +815,6 @@ void Lua::write_function_definition(const Ast::Function& function, const bool& i
 	write_indent();
 	write("end");
 	prototypeDataLeft -= function.prototype.prototypeSize;
-	// print_progress_bar(bytecode.prototypesTotalSize - prototypeDataLeft, bytecode.prototypesTotalSize);
 }
 
 void Lua::write_number(const double& number) {
@@ -991,17 +999,24 @@ void Lua::write_indent() {
 }
 
 void Lua::create_file() {
-	file = CreateFileA(filePath.c_str(), GENERIC_WRITE, NULL, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
-	assert(file != INVALID_HANDLE_VALUE, "Unable to create file", filePath, DEBUG_INFO);
+	if (bytecode.isFileMode()) {
+		file = CreateFileA(filePath.c_str(), GENERIC_WRITE, NULL, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
+		assert(file != INVALID_HANDLE_VALUE, "Unable to create file", filePath, DEBUG_INFO);
+	}
 }
 
 void Lua::close_file() {
-	if (file == INVALID_HANDLE_VALUE) return;
-	CloseHandle(file);
-	file = INVALID_HANDLE_VALUE;
+	if (bytecode.isFileMode()) {
+		if (file == INVALID_HANDLE_VALUE) return;
+		CloseHandle(file);
+		file = INVALID_HANDLE_VALUE;
+	}
 }
 
 void Lua::write_file() {
+	if (!bytecode.isFileMode()) {
+		write(NEW_LINE);
+	}
 	DWORD charsWritten = 0;
 	assert(WriteFile(file, writeBuffer.data(), writeBuffer.size(), &charsWritten, NULL) && !(writeBuffer.size() - charsWritten), "Failed writing to file", filePath, DEBUG_INFO);
 	writeBuffer.clear();

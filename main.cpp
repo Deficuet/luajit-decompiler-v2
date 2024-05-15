@@ -23,12 +23,9 @@ std::ostream& operator<<(std::ostream &out, const Error &error) {
 
 extern "C" {
 	PY_FUNC void decompile(const char *input, const char *output) {
-		std::string inPath{input};
-		std::string outPath{output};
-
-		Bytecode bytecode{inPath};
+		Bytecode bytecode{input};
 		Ast ast{bytecode, false, false};
-		Lua lua{bytecode, ast, outPath, false, false};
+		Lua lua{bytecode, ast, output, false, true};
 
 		try {
 			bytecode();
@@ -38,6 +35,35 @@ extern "C" {
 			std::cout << error;
 		} catch (...) {
 			std::cout << "Unknown exception in file: " << bytecode.filePath << std::endl;
+		}
+	}
+
+	PY_FUNC HANDLE create_seg_file(const char *file) {
+		return CreateFileA(file, GENERIC_WRITE, NULL, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
+	}
+
+	PY_FUNC void decompile_append(HANDLE file, const char* name, const char* array, size_t size) {
+		Bytecode bytecode{name, array, size};
+		Ast ast{bytecode, false, false};
+		Lua lua{bytecode, ast, file, false, true};
+
+		try {
+			bytecode();
+			ast();
+			lua();
+		} catch (const Error &error) {
+			std::cout << error;
+		} catch (...) {
+			std::cout << "Unknown exception in file: " << bytecode.filePath << std::endl;
+		}
+	}
+
+	PY_FUNC void close_seg_file(HANDLE file) {
+		if (file == INVALID_HANDLE_VALUE) {
+			std::cout << "close_seg_file: invalid handle" << std::endl;
+			return;
+		} else {
+			CloseHandle(file);
 		}
 	}
 }
