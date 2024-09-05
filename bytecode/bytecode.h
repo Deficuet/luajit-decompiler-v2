@@ -12,15 +12,15 @@ public:
 	#include "constants.h"
 	#include "instructions.h"
 
-	Bytecode(const std::string& filePath);
-	Bytecode(const std::string&, const char*, size_t);
+	Bytecode(const std::wstring &filePath);
+	Bytecode(const std::wstring &, const char *, size_t);
 	~Bytecode();
 
 	void operator()();
 
 	bool isFileMode() const;
 
-	const std::string filePath;
+	const std::wstring filePath;
 
 	struct {
 		uint8_t version = 0;

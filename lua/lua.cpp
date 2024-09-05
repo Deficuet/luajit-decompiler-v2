@@ -1,12 +1,12 @@
 #include "..\main.h"
 
 Lua::Lua(
-	const Bytecode& bytecode, 
-	const Ast& ast, 
-	const std::string& filePath, 
-	const bool& minimizeDiffs, 
-	const bool& unrestrictedAscii
-): bytecode{bytecode}, ast{ast}, filePath{filePath}, minimizeDiffs{minimizeDiffs}, unrestrictedAscii{unrestrictedAscii} {}
+	const Bytecode &bytecode, 
+	const Ast &ast, 
+	const std::wstring &filePath, 
+	const bool &minimizeDiffs, 
+	const bool &unrestrictedAscii
+): bytecode{bytecode}, ast{ast}, filePath{filePath}, minimizeDiffs{minimizeDiffs}, unrestrictedAscii{unrestrictedAscii} {  }
 
 Lua::Lua(const Bytecode &bytecode, const Ast &ast, HANDLE file, const bool &minimizeDiffs, const bool &unrestrictedAscii):
 	bytecode{bytecode}, ast{ast}, filePath{bytecode.filePath}, 
@@ -1000,7 +1000,8 @@ void Lua::write_indent() {
 
 void Lua::create_file() {
 	if (bytecode.isFileMode()) {
-		file = CreateFileA(filePath.c_str(), GENERIC_WRITE, NULL, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
+		file = CreateFileW(filePath.c_str(), GENERIC_WRITE, NULL, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
+		// file = CreateFileA(filePath.c_str(), GENERIC_WRITE, NULL, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
 		assert(file != INVALID_HANDLE_VALUE, "Unable to create file", filePath, DEBUG_INFO);
 	}
 }

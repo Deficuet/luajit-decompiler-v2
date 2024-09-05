@@ -1,9 +1,9 @@
 #include "..\main.h"
 
-Bytecode::Bytecode(const std::string &filePath) : filePath{filePath}, array{nullptr}, mode{MODE_FILE} {  }
+Bytecode::Bytecode(const std::wstring &filePath) : filePath{filePath}, array{nullptr}, mode{MODE_FILE} {  }
 
-Bytecode::Bytecode(const std::string &name, const char *array, size_t size): 
-	filePath{name}, array{(uint8_t *)array}, mode{MODE_BYTES}, fileSize{size}, bytesUnread{size} {}
+Bytecode::Bytecode(const std::wstring &name, const char *array, size_t size): 
+	filePath{name}, array{(uint8_t *)array}, mode{MODE_BYTES}, fileSize{size}, bytesUnread{size} {  }
 
 Bytecode::~Bytecode() {
 	close_file();
@@ -58,7 +58,8 @@ void Bytecode::read_prototypes() {
 
 void Bytecode::open_file() {
 	if (isFileMode()) {
-		file = CreateFileA(filePath.c_str(), GENERIC_READ, NULL, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
+		file = CreateFileW(filePath.c_str(), GENERIC_READ, NULL, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
+		// file = CreateFileA(filePath.c_str(), GENERIC_READ, NULL, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
 		assert(file != INVALID_HANDLE_VALUE, "Unable to open file", filePath, DEBUG_INFO);
 		DWORD fileSizeHigh = 0;
 		fileSize = GetFileSize(file, &fileSizeHigh);
