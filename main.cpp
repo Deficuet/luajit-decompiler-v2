@@ -3,29 +3,43 @@
 
 #define PY_EXPORT __declspec(dllexport)
 
+using namespace std;
+
 struct Error {
-	const std::string &message;
-	const std::wstring &filePath;
-	const std::string &function;
-	const std::string &source;
-	const std::string &line;
+	const string &message;
+	const wstring &filePath;
+	const string &function;
+	const string &source;
+	const string &line;
 };
 
-std::wostream &operator<<(std::wostream &wout, const Error &error) {
-	wout << "Error running ";
-	wout << error.function.c_str() << ". ";
-	wout << "Source: ";
-	wout << error.source.c_str() << ": " << error.line.c_str() << ". ";
-	wout << error.message.c_str();
-	return wout;
+ostream &operator<<(ostream &out, const wstring &str) {
+	int cp = GetACP();
+	const wchar_t *ws = str.c_str();
+	int size = WideCharToMultiByte(cp, NULL, ws, -1, NULL, 0, NULL, NULL);
+	char *buf = new char[size]{ 0 };
+	WideCharToMultiByte(cp, NULL, ws, -1, buf, size, NULL, NULL);
+	cout << buf;
+	delete[] buf;
+	return out;
+}
+
+ostream &operator<<(ostream &out, const Error &error) {
+	out << "ljd: Error running ";
+	out << error.function << ". ";
+	out << "File: " << error.filePath << ", ";
+	out << "Source: ";
+	out << error.source << ": " << error.line << ". ";
+	out << error.message;
+	return out;
 }
 
 void assert(
 	const bool &assertion, 
-	const std::string &message, 
-	const std::wstring &filePath, 
-	const std::string &function, 
-	const std::string &source, 
+	const string &message, 
+	const wstring &filePath, 
+	const string &function, 
+	const string &source, 
 	const uint32_t &line
 ) {
 	if (!assertion) {
@@ -34,12 +48,12 @@ void assert(
 			.filePath = filePath,
 			.function = function,
 			.source = source,
-			.line = std::to_string(line)
+			.line = to_string(line)
 		};
 	}
 }
 
-std::string byte_to_string(const uint8_t &byte) {
+string byte_to_string(const uint8_t &byte) {
 	char string[] = "0x00";
 	uint8_t digit;
 	for (uint8_t i = 2; i--;) {
@@ -63,9 +77,9 @@ extern "C" {
 			ast();
 			lua();
 		} catch (const Error &error) {
-			std::wcout << error << std::endl;
+			cout << error << endl;
 		} catch (...) {
-			std::wcout << "Unknown exception in file: " << bytecode.filePath << std::endl;
+			wcout << "Unknown exception in file: " << bytecode.filePath << endl;
 		}
 	}
 
@@ -88,15 +102,15 @@ extern "C" {
 			ast();
 			lua();
 		} catch (const Error &error) {
-			std::wcout << error << std::endl;
+			cout << error << endl;
 		} catch (...) {
-			std::wcout << "Unknown exception in file: " << bytecode.filePath << std::endl;
+			wcout << "Unknown exception in file: " << bytecode.filePath << endl;
 		}
 	}
 
 	PY_EXPORT void close_src_file(HANDLE file) {
 		if (file == INVALID_HANDLE_VALUE) {
-			std::cout << "close_seg_file: invalid handle" << std::endl;
+			cout << "close_seg_file: invalid handle" << endl;
 			return;
 		} else {
 			CloseHandle(file);
