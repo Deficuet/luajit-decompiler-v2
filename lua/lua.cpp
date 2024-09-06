@@ -1001,7 +1001,6 @@ void Lua::write_indent() {
 void Lua::create_file() {
 	if (bytecode.isFileMode()) {
 		file = CreateFileW(filePath.c_str(), GENERIC_WRITE, NULL, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
-		// file = CreateFileA(filePath.c_str(), GENERIC_WRITE, NULL, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
 		assert(file != INVALID_HANDLE_VALUE, "Unable to create file", filePath, DEBUG_INFO);
 	}
 }

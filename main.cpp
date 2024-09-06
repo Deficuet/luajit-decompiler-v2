@@ -84,7 +84,15 @@ extern "C" {
 	}
 
 	PY_EXPORT HANDLE open_src_file(const wchar_t *filePath) {
-		return CreateFileW(filePath, GENERIC_WRITE, NULL, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
+		return CreateFileW(
+			filePath, 
+			GENERIC_WRITE, 
+			NULL, 
+			NULL, 
+			CREATE_ALWAYS, 
+			FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, 
+			NULL
+		);
 	}
 
 	PY_EXPORT void bytes_to_file_append(

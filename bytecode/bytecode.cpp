@@ -59,7 +59,6 @@ void Bytecode::read_prototypes() {
 void Bytecode::open_file() {
 	if (isFileMode()) {
 		file = CreateFileW(filePath.c_str(), GENERIC_READ, NULL, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
-		// file = CreateFileA(filePath.c_str(), GENERIC_READ, NULL, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
 		assert(file != INVALID_HANDLE_VALUE, "Unable to open file", filePath, DEBUG_INFO);
 		DWORD fileSizeHigh = 0;
 		fileSize = GetFileSize(file, &fileSizeHigh);
