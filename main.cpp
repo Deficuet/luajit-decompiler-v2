@@ -9,7 +9,7 @@ struct Error {
 };
 
 static const HANDLE CONSOLE_OUTPUT = GetStdHandle(STD_OUTPUT_HANDLE);
-static const HANDLE CONSOLE_INPUT = GetStdHandle(STD_INPUT_HANDLE);
+//static const HANDLE CONSOLE_INPUT = GetStdHandle(STD_INPUT_HANDLE);
 static bool isCommandLine;
 static bool isProgressBarActive = false;
 static uint32_t filesSkipped = 0;
@@ -85,16 +85,16 @@ static bool decompile_files_recursively(const Directory& directory) {
 			print("Writing lua source...");
 			lua();
 			print("Output file: " + lua.filePath);
-		} catch (const Error& assertion) {
+		} catch (const Error& error) {
 			erase_progress_bar();
 
 			if (arguments.silentAssertions) {
-				print("\nError running " + assertion.function + "\nSource: " + assertion.source + ":" + assertion.line + "\n\n" + assertion.message);
+				print("\nError running " + error.function + "\nSource: " + error.source + ":" + error.line + "\n\n" + error.message);
 				filesSkipped++;
 				continue;
 			}
 
-			switch (MessageBoxA(NULL, ("Error running " + assertion.function + "\nSource: " + assertion.source + ":" + assertion.line + "\n\nFile: " + assertion.filePath + "\n\n" + assertion.message).c_str(),
+			switch (MessageBoxA(NULL, ("Error running " + error.function + "\nSource: " + error.source + ":" + error.line + "\n\nFile: " + error.filePath + "\n\n" + error.message).c_str(),
 				PROGRAM_NAME, MB_ICONERROR | MB_CANCELTRYCONTINUE | MB_DEFBUTTON3)) {
 			case IDCANCEL:
 				return false;
@@ -137,7 +137,7 @@ static char* parse_arguments(const int& argc, char** const& argv) {
 	for (uint32_t i = isInputPathSet ? 2 : 1; i < argc; i++) {
 		argument = argv[i];
 
-		if (argument.size() >= 2 || argument.front() == '-') {
+		if (argument.size() >= 2 && argument.front() == '-') {
 			if (argument[1] == '-') {
 				argument = argument.c_str() + 2;
 
@@ -158,6 +158,7 @@ static char* parse_arguments(const int& argc, char** const& argv) {
 					continue;
 				} else if (argument == "minimize_diffs") {
 					arguments.minimizeDiffs = true;
+					continue;
 				} else if (argument == "output") {
 					if (i <= argc - 2) {
 						i++;
@@ -214,23 +215,29 @@ static char* parse_arguments(const int& argc, char** const& argv) {
 
 static void wait_for_exit() {
 	if (isCommandLine) return;
-	print("Press enter to exit.");
-	input();
+	print("Press any key to exit.");
+
+	while (!_kbhit()) {
+		Sleep(0);
+	};
 }
 
 int main(int argc, char* argv[]) {
-	print(std::string(PROGRAM_NAME) + "\nCompiled on " + __DATE__);
 	SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_SYSTEM_AWARE);
 
 	{
+		HWND window = GetConsoleWindow();
 		DWORD consoleProcessId;
-		GetWindowThreadProcessId(GetConsoleWindow(), &consoleProcessId);
+		GetWindowThreadProcessId(window, &consoleProcessId);
 #ifdef _DEBUG
 		isCommandLine = false;
 #else
 		isCommandLine = consoleProcessId != GetCurrentProcessId();
+		if (!isCommandLine) SetWindowTextA(window, PROGRAM_NAME);
 #endif
 	}
+
+	print(std::string(PROGRAM_NAME) + "\nCompiled on " + __DATE__);
 	
 	if (parse_arguments(argc, argv)) {
 		print("Invalid argument: " + std::string(parse_arguments(argc, argv)) + "\nUse -? to show usage and options.");
@@ -369,6 +376,7 @@ void print(const std::string& message) {
 	WriteConsoleA(CONSOLE_OUTPUT, (message + '\n').data(), message.size() + 1, NULL, NULL);
 }
 
+/*
 std::string input() {
 	static char BUFFER[1024];
 
@@ -376,6 +384,7 @@ std::string input() {
 	DWORD charsRead;
 	return ReadConsoleA(CONSOLE_INPUT, BUFFER, sizeof(BUFFER), &charsRead, NULL) && charsRead > 2 ? std::string(BUFFER, charsRead - 2) : "";
 }
+*/
 
 void print_progress_bar(const double& progress, const double& total) {
 	static char PROGRESS_BAR[] = "\r[====================]";

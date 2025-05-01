@@ -52,8 +52,8 @@ void Bytecode::read_prototypes() {
 	assert(unlinkedPrototypes.size() == 1, "Failed to link main prototype", filePath, DEBUG_INFO);
 	main = unlinkedPrototypes.back();
 	assert((main->header.flags & BC_PROTO_VARARG)
-		&& main->header.parameters == 0
-		&& main->upvalues.size() == 0,
+		&& !main->header.parameters
+		&& !main->upvalues.size(),
 		"Main prototype has invalid header", filePath, DEBUG_INFO);
 	prototypes.shrink_to_fit();
 }
@@ -61,9 +61,8 @@ void Bytecode::read_prototypes() {
 void Bytecode::open_file() {
 	file = CreateFileA(filePath.c_str(), GENERIC_READ, NULL, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
 	assert(file != INVALID_HANDLE_VALUE, "Unable to open file", filePath, DEBUG_INFO);
-	DWORD fileSizeHigh = 0;
-	fileSize = GetFileSize(file, &fileSizeHigh);
-	fileSize |= (uint64_t)fileSizeHigh << 32;
+	fileSize |= (uint64_t)GetFileSize(file, (DWORD*)&fileSize) << 32;
+	fileSize = (fileSize >> 32) | (fileSize << 32);
 	assert(fileSize >= MIN_FILE_SIZE, "File is too small or empty", filePath, DEBUG_INFO);
 	bytesUnread = fileSize;
 }
