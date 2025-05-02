@@ -1381,7 +1381,7 @@ void Ast::build_slot_scopes(Function& function, std::vector<Statement*>& block, 
 		for (uint8_t j = block[i]->assignment.variables.size(); j--;) {
 			switch (block[i]->assignment.variables[j].type) {
 			case AST_VARIABLE_SLOT:
-				if (block[i]->type != AST_STATEMENT_DECLARATION || !function.slotScopeCollector.slotInfos[block[i]->assignment.variables[j].slot].activeSlotScope) {
+				if (block[i]->type != AST_STATEMENT_DECLARATION || function.slotScopeCollector.slotInfos[block[i]->assignment.variables[j].slot].minScopeBegin >= id) {
 					function.slotScopeCollector.close_scope(block[i]->assignment.variables[j].slot, block[i]->assignment.variables[j].slotScope, id);
 					continue;
 				}
