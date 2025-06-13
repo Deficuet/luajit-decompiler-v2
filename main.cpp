@@ -1,7 +1,7 @@
 #include "main.h"
 #include <iostream>
 
-#define PY_EXPORT __declspec(dllexport)
+#define EXPORT __declspec(dllexport)
 
 using namespace std;
 
@@ -64,7 +64,7 @@ string byte_to_string(const uint8_t &byte) {
 }
 
 extern "C" {
-	PY_EXPORT void file_to_file(
+	EXPORT void file_to_file(
 		const wchar_t *input, 
 		const wchar_t *output
 	) {
@@ -83,7 +83,7 @@ extern "C" {
 		}
 	}
 
-	PY_EXPORT HANDLE open_src_file(const wchar_t *filePath) {
+	EXPORT HANDLE open_src_file(const wchar_t *filePath) {
 		return CreateFileW(
 			filePath, 
 			GENERIC_WRITE, 
@@ -95,7 +95,7 @@ extern "C" {
 		);
 	}
 
-	PY_EXPORT void bytes_to_file_append(
+	EXPORT void bytes_to_file_append(
 		HANDLE file, 
 		const wchar_t *name, 
 		const char *array, 
@@ -116,7 +116,7 @@ extern "C" {
 		}
 	}
 
-	PY_EXPORT void close_src_file(HANDLE file) {
+	EXPORT void close_src_file(HANDLE file) {
 		if (file == INVALID_HANDLE_VALUE) {
 			cout << "close_seg_file: invalid handle" << endl;
 			return;
