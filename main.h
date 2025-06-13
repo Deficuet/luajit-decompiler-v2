@@ -21,6 +21,7 @@ Requirements:
 #include <vector>
 
 #include <windows.h>
+#include <conio.h>
 #include <fileapi.h>
 
 #define DEBUG_INFO __FUNCTION__, __FILE__, __LINE__
