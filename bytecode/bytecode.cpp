@@ -1,4 +1,4 @@
-#include "..\main.h"
+#include "..\ljd.h"
 
 Bytecode::Bytecode(const std::wstring &filePath) : filePath{filePath}, array{nullptr}, mode{MODE_FILE} {  }
 
