@@ -64,7 +64,7 @@ string byte_to_string(const uint8_t &byte) {
 }
 
 extern "C" {
-	EXPORT void file_to_file(
+	EXPORT void ljd_file_to_file(
 		const wchar_t *input, 
 		const wchar_t *output
 	) {
@@ -83,27 +83,15 @@ extern "C" {
 		}
 	}
 
-	EXPORT HANDLE open_src_file(const wchar_t *filePath) {
-		return CreateFileW(
-			filePath, 
-			GENERIC_WRITE, 
-			NULL, 
-			NULL, 
-			CREATE_ALWAYS, 
-			FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, 
-			NULL
-		);
-	}
-
-	EXPORT void bytes_to_file_append(
-		HANDLE file, 
-		const wchar_t *name, 
-		const char *array, 
-		size_t size
+	EXPORT void ljd_bytes_to_file(
+		const wchar_t *name,
+		const char *array,
+		size_t inSize,
+		const wchar_t *outPath
 	) {
-		Bytecode bytecode{name, array, size};
+		Bytecode bytecode{name, array, inSize};
 		Ast ast{bytecode, false, false};
-		Lua lua{bytecode, ast, file, false, true};
+		Lua lua{bytecode, ast, outPath, false, true};
 
 		try {
 			bytecode();
@@ -115,13 +103,33 @@ extern "C" {
 			wcout << "Unknown exception in file: " << bytecode.filePath << endl;
 		}
 	}
+	
+	/**
+	 * GENERIC_WRITE, 
+	 * NULL, 
+	 * NULL, 
+	 * CREATE_ALWAYS, 
+	 * FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, 
+	 * NULL
+	 */
+	EXPORT void ljd_bytes_to_file_append(
+		HANDLE file, 
+		const wchar_t *name, 
+		const char *array, 
+		size_t inSize
+	) {
+		Bytecode bytecode{name, array, inSize};
+		Ast ast{bytecode, false, false};
+		Lua lua{bytecode, ast, file, false, true};
 
-	EXPORT void close_src_file(HANDLE file) {
-		if (file == INVALID_HANDLE_VALUE) {
-			cout << "close_seg_file: invalid handle" << endl;
-			return;
-		} else {
-			CloseHandle(file);
+		try {
+			bytecode();
+			ast();
+			lua();
+		} catch (const Error &error) {
+			cout << error << endl;
+		} catch (...) {
+			wcout << "Unknown exception in file: " << bytecode.filePath << endl;
 		}
 	}
 }
