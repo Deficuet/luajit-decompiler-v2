@@ -1,7 +1,6 @@
+#include "main.h"
 #include "ljd.h"
 #include <iostream>
-
-#define EXPORT __declspec(dllexport)
 
 using namespace std;
 

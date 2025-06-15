@@ -1,4 +1,4 @@
-#include "..\ljd.h"
+#include "..\main.h"
 
 Lua::Lua(
 	const Bytecode &bytecode, 
