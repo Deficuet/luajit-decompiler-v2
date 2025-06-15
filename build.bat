@@ -15,5 +15,5 @@ cl /std:c++20 /J /O2 /LD /EHsc /Fo.\build\ /Fe:.\build\ljd%2.dll .\*.cpp .\ast\*
 ) else if "%1"=="static" (
 "%VS_DEV_CMD_ROOT%\VsDevCmd.bat" -arch=%TARGET% && ^
 cl /std:c++20 /J /O2 /EHsc /c /Fo.\build\ .\*.cpp .\ast\*.cpp .\bytecode\*.cpp .\lua\*.cpp && ^
-ar rcs .\build\ljd%2.a .\build\*.obj
+ar rcs .\build\libljd%2.a .\build\*.obj
 )
