@@ -1,6 +1,8 @@
 #include <windows.h>
 
+#if !defined(EXPORT)
 #define EXPORT __declspec(dllexport)
+#endif
 
 #ifdef __cplusplus
 extern "C" {
