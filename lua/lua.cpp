@@ -6,11 +6,12 @@ Lua::Lua(
 	const std::wstring &filePath, 
 	const bool &minimizeDiffs, 
 	const bool &unrestrictedAscii
-): bytecode{bytecode}, ast{ast}, filePath{filePath}, minimizeDiffs{minimizeDiffs}, unrestrictedAscii{unrestrictedAscii} {  }
+): bytecode{bytecode}, ast{ast}, filePath{filePath}, minimizeDiffs{minimizeDiffs}, 
+	unrestrictedAscii{unrestrictedAscii}, outputMode{SINGLE_FILE} {  }
 
 Lua::Lua(const Bytecode &bytecode, const Ast &ast, HANDLE file, const bool &minimizeDiffs, const bool &unrestrictedAscii):
 	bytecode{bytecode}, ast{ast}, filePath{bytecode.filePath}, 
-	file{file}, minimizeDiffs{minimizeDiffs}, unrestrictedAscii{unrestrictedAscii} {  }
+	file{file}, minimizeDiffs{minimizeDiffs}, unrestrictedAscii{unrestrictedAscii}, outputMode{APPEND} {  }
 
 Lua::~Lua() {
 	close_file();
@@ -1007,14 +1008,14 @@ void Lua::write_indent() {
 }
 
 void Lua::create_file() {
-	if (bytecode.isFileMode()) {
+	if (outputMode == SINGLE_FILE) {
 		file = CreateFileW(filePath.c_str(), GENERIC_WRITE, NULL, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
 		assert(file != INVALID_HANDLE_VALUE, "Unable to create file", filePath, DEBUG_INFO);
 	}
 }
 
 void Lua::close_file() {
-	if (bytecode.isFileMode()) {
+	if (outputMode == SINGLE_FILE) {
 		if (file == INVALID_HANDLE_VALUE) return;
 		CloseHandle(file);
 		file = INVALID_HANDLE_VALUE;
@@ -1022,7 +1023,7 @@ void Lua::close_file() {
 }
 
 void Lua::write_file() {
-	if (!bytecode.isFileMode()) {
+	if (outputMode == APPEND) {
 		write(NEW_LINE);
 	}
 	DWORD charsWritten = 0;

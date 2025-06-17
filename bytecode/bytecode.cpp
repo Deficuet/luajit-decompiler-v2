@@ -1,9 +1,9 @@
 #include "..\main.h"
 
-Bytecode::Bytecode(const std::wstring &filePath) : filePath{filePath}, array{nullptr}, mode{MODE_FILE} {  }
+Bytecode::Bytecode(const std::wstring &filePath) : filePath{filePath}, array{nullptr}, inputMode{FROM_FILE} {  }
 
 Bytecode::Bytecode(const std::wstring &name, const char *array, size_t size): 
-	filePath{name}, array{(uint8_t *)array}, mode{MODE_BYTES}, fileSize{size}, bytesUnread{size} {  }
+	filePath{name}, array{(uint8_t *)array}, inputMode{FROM_BYTES}, fileSize{size}, bytesUnread{size} {  }
 
 Bytecode::~Bytecode() {
 	close_file();
@@ -23,7 +23,7 @@ void Bytecode::operator()() {
 	fileBuffer.shrink_to_fit();
 }
 
-bool Bytecode::isFileMode() const { return mode == MODE_FILE; }
+bool Bytecode::isFileMode() const { return inputMode == FROM_FILE; }
 
 void Bytecode::read_header() {
 	read_file(5);
@@ -61,7 +61,7 @@ void Bytecode::read_prototypes() {
 }
 
 void Bytecode::open_file() {
-	if (isFileMode()) {
+	if (inputMode == FROM_FILE) {
 		file = CreateFileW(filePath.c_str(), GENERIC_READ, NULL, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
 		assert(file != INVALID_HANDLE_VALUE, "Unable to open file", filePath, DEBUG_INFO);
 			fileSize |= (uint64_t)GetFileSize(file, (DWORD*)&fileSize) << 32;
@@ -72,7 +72,7 @@ void Bytecode::open_file() {
 }
 
 void Bytecode::close_file() {
-	if (isFileMode()) {
+	if (inputMode == FROM_FILE) {
 		if (file == INVALID_HANDLE_VALUE) return;
 		CloseHandle(file);
 		file = INVALID_HANDLE_VALUE;
@@ -82,7 +82,7 @@ void Bytecode::close_file() {
 void Bytecode::read_file(const uint32_t& byteCount) {
 	assert(bytesUnread >= byteCount, "Read would exceed end of file", filePath, DEBUG_INFO);
 	fileBuffer.resize(byteCount);
-	if (isFileMode()) {
+	if (inputMode == FROM_FILE) {
 		DWORD bytesRead = 0;
 		assert(ReadFile(file, fileBuffer.data(), byteCount, &bytesRead, NULL) && !(byteCount - bytesRead), "Failed to read file", filePath, DEBUG_INFO);
 	} else {

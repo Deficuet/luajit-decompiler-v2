@@ -1,3 +1,8 @@
+enum InputMode {
+	FROM_FILE,
+	FROM_BYTES,
+};
+
 class Bytecode {
 public:
 
@@ -35,9 +40,6 @@ private:
 	static constexpr uint8_t MIN_PROTO_SIZE = 11;
 	static constexpr uint8_t MIN_FILE_SIZE = MIN_PROTO_SIZE + 7;
 
-	static const uint8_t MODE_FILE = 0;
-	static const uint8_t MODE_BYTES = 1;
-
 	void read_header();
 	void read_prototypes();
 	void open_file();
@@ -49,7 +51,7 @@ private:
 	HANDLE file = INVALID_HANDLE_VALUE;
 	const uint8_t * const array;
 
-	const uint8_t mode;
+	const InputMode inputMode;
 
 	uint64_t fileSize = 0;
 	uint64_t bytesUnread = 0;

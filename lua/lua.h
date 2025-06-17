@@ -1,3 +1,8 @@
+enum OutputMode {
+	SINGLE_FILE,
+	APPEND,
+};
+
 class Lua {
 public:
 	Lua(const Bytecode &bytecode, const Ast &ast, const std::wstring &filePath, const bool &minimizeDiffs, const bool &unrestrictedAscii);
@@ -37,6 +42,9 @@ private:
 	const bool minimizeDiffs;
 	const bool unrestrictedAscii;
 	HANDLE file = INVALID_HANDLE_VALUE;
+
+	const OutputMode outputMode;
+
 	std::string writeBuffer;
 	uint32_t indentLevel = 0;
 	uint64_t prototypeDataLeft = 0;
