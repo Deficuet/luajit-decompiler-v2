@@ -64,7 +64,7 @@ void Bytecode::open_file() {
 	if (inputMode == FROM_FILE) {
 		file = CreateFileW(filePath.c_str(), GENERIC_READ, NULL, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
 		assert(file != INVALID_HANDLE_VALUE, "Unable to open file", filePath, DEBUG_INFO);
-			fileSize |= (uint64_t)GetFileSize(file, (DWORD*)&fileSize) << 32;
+		fileSize |= (uint64_t)GetFileSize(file, (DWORD*)&fileSize) << 32;
 		fileSize = (fileSize >> 32) | (fileSize << 32);
 		assert(fileSize >= MIN_FILE_SIZE, "File is too small or empty", filePath, DEBUG_INFO);
 		bytesUnread = fileSize;

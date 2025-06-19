@@ -32,7 +32,7 @@ constexpr uint64_t DOUBLE_FRACTION = 0x000FFFFFFFFFFFFF;
 constexpr uint64_t DOUBLE_SPECIAL = DOUBLE_EXPONENT;
 constexpr uint64_t DOUBLE_NEGATIVE_ZERO = DOUBLE_SIGN;
 
-void assert(const bool &assertion, const std::string &message, const std::wstring &filePath, const std::string &function, const std::string &source, const uint32_t &line);
+void assert(const bool assertion, const std::string message, const std::wstring &filePath, const char *function, const char *source, const uint32_t line);
 std::string byte_to_string(const uint8_t &byte);
 
 class Bytecode;

@@ -5,41 +5,30 @@
 using namespace std;
 
 struct Error {
-	const string &message;
+	const string message;
 	const wstring &filePath;
-	const string &function;
-	const string &source;
-	const string &line;
+	const char *function;
+	const char *source;
+	const uint32_t line;
 };
 
-ostream &operator<<(ostream &out, const wstring &str) {
-	int cp = GetACP();
-	const wchar_t *ws = str.c_str();
-	int size = WideCharToMultiByte(cp, NULL, ws, -1, NULL, 0, NULL, NULL);
-	char *buf = new char[size]{ 0 };
-	WideCharToMultiByte(cp, NULL, ws, -1, buf, size, NULL, NULL);
-	cout << buf;
-	delete[] buf;
-	return out;
-}
-
-ostream &operator<<(ostream &out, const Error &error) {
-	out << "ljd: Error running ";
-	out << error.function << ". ";
-	out << "File: " << error.filePath << ", ";
-	out << "Source: ";
-	out << error.source << ": " << error.line << ". ";
-	out << error.message;
-	return out;
+wostream &operator<<(wostream &wout, const Error &error) {
+	wout << "ljd: Error running ";
+	wout << error.function << ". ";
+	wout << "File: " << error.filePath << ", ";
+	wout << "Source: ";
+	wout << error.source << ": " << error.line << ". ";
+	wout << error.message.c_str();
+	return wout;
 }
 
 void assert(
-	const bool &assertion, 
-	const string &message, 
+	const bool assertion, 
+	const string message, 
 	const wstring &filePath, 
-	const string &function, 
-	const string &source, 
-	const uint32_t &line
+	const char *function, 
+	const char *source, 
+	const uint32_t line
 ) {
 	if (!assertion) {
 		throw Error {
@@ -47,7 +36,7 @@ void assert(
 			.filePath = filePath,
 			.function = function,
 			.source = source,
-			.line = to_string(line)
+			.line = line
 		};
 	}
 }
@@ -76,7 +65,7 @@ extern "C" {
 			ast();
 			lua();
 		} catch (const Error &error) {
-			cout << error << endl;
+			wcout << error << endl;
 		} catch (...) {
 			wcout << "Unknown exception in file: " << bytecode.filePath << endl;
 		}
@@ -97,7 +86,7 @@ extern "C" {
 			ast();
 			lua();
 		} catch (const Error &error) {
-			cout << error << endl;
+			wcout << error << endl;
 		} catch (...) {
 			wcout << "Unknown exception in file: " << bytecode.filePath << endl;
 		}
@@ -126,7 +115,7 @@ extern "C" {
 			ast();
 			lua();
 		} catch (const Error &error) {
-			cout << error << endl;
+			wcout << error << endl;
 		} catch (...) {
 			wcout << "Unknown exception in file: " << bytecode.filePath << endl;
 		}
