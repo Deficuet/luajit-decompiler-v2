@@ -1993,9 +1993,40 @@ void Ast::eliminate_slots(Function& function, std::vector<Statement*>& block, Bl
 								block[i - 1]->assignment.expressions.back()->table->multresIndex = block[i]->assignment.variables.back().multresIndex;
 								block[i - 1]->assignment.expressions.back()->table->multresField = block[i]->assignment.expressions.back();
 							} else {
-								block[i - 1]->assignment.expressions.back()->table->fields.emplace_back();
-								block[i - 1]->assignment.expressions.back()->table->fields.back().key = block[i]->assignment.variables.back().tableIndex;
-								block[i - 1]->assignment.expressions.back()->table->fields.back().value = block[i]->assignment.expressions.back();
+								Ast::Table* tableExpression = block[i - 1]->assignment.expressions.back()->table;
+
+								Ast::Table::Field newField;
+								newField.key = block[i]->assignment.variables.back().tableIndex;
+								newField.value = block[i]->assignment.expressions.back();
+
+								// replace any existing nil reserved field with the same key
+								bool replacesExistingKey = false;
+								if (!tableExpression->constants.fields.empty()) {
+									for (uint32_t j = tableExpression->constants.fields.size(); j--;) {
+										Ast::Table::Field &tableField = tableExpression->constants.fields[j];
+										if (true
+												// the key needs to be identical
+												&& tableField.key->type == newField.key->type
+												&& tableField.key->type == AST_EXPRESSION_CONSTANT
+												&& tableField.key->constant->type == newField.key->constant->type
+												&& tableField.key->constant->type == AST_CONSTANT_STRING
+												&& tableField.key->constant->string == newField.key->constant->string
+
+												// and the original assignment needs to be nil
+												&& tableField.value->type == AST_EXPRESSION_CONSTANT
+												&& tableField.value->constant->type == AST_CONSTANT_NIL) {
+
+											// TODO: cleanup original?
+											tableExpression->constants.fields[j] = newField;
+											replacesExistingKey = true;
+											break;
+										}
+									}
+								}
+
+								if (!replacesExistingKey) {
+									tableExpression->fields.push_back(newField);
+								}
 							}
 
 							(*block[i - 1]->assignment.variables.back().slotScope)->usages--;
