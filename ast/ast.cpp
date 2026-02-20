@@ -1990,6 +1990,17 @@ void Ast::eliminate_slots(Function& function, std::vector<Statement*>& block, Bl
 								block[i - 1]->assignment.expressions.back()->table->multresIndex = block[i]->assignment.variables.back().multresIndex;
 								block[i - 1]->assignment.expressions.back()->table->multresField = block[i]->assignment.expressions.back();
 							} else {
+								if (block[i]->assignment.variables.back().tableIndex->type == AST_EXPRESSION_CONSTANT && block[i]->assignment.variables.back().tableIndex->constant->type == AST_CONSTANT_STRING) {
+									for (uint32_t j = block[i - 1]->assignment.expressions.back()->table->constants.fields.size(); j--;) {
+										if (block[i - 1]->assignment.expressions.back()->table->constants.fields[j].key->constant->type != AST_CONSTANT_STRING
+											|| block[i - 1]->assignment.expressions.back()->table->constants.fields[j].key->constant->string != block[i]->assignment.variables.back().tableIndex->constant->string)
+											continue;
+										if (block[i - 1]->assignment.expressions.back()->table->constants.fields[j].value->constant->type == AST_CONSTANT_NIL)
+											block[i - 1]->assignment.expressions.back()->table->constants.fields.erase(block[i - 1]->assignment.expressions.back()->table->constants.fields.begin() + j);
+										break;
+									}
+								}
+
 								block[i - 1]->assignment.expressions.back()->table->fields.emplace_back();
 								block[i - 1]->assignment.expressions.back()->table->fields.back().key = block[i]->assignment.variables.back().tableIndex;
 								block[i - 1]->assignment.expressions.back()->table->fields.back().value = block[i]->assignment.expressions.back();
@@ -2279,7 +2290,14 @@ void Ast::eliminate_conditions(Function& function, std::vector<Statement*>& bloc
 				conditionBuilder.add_node(conditionBuilder.get_node_type(block[j]->instruction.type, block[j]->condition.swapped), block[j]->instruction.label,
 					hasEndAssignment
 					|| block[j]->assignment.variables.size()
-					|| (block[j]->instruction.target == function.labels[targetLabel].target ? targetLabel != extendedTargetLabel : block[j]->instruction.target != function.labels[extendedTargetLabel].target)
+					|| (block[j]->instruction.target == function.labels[targetLabel].target
+						? targetLabel != extendedTargetLabel
+						//TODO
+						|| (block[j]->assignment.expressions.size() == 1
+							&& block[j]->assignment.expressions.back()->type == AST_EXPRESSION_VARIABLE
+							&& block[j]->assignment.expressions.back()->variable->type == AST_VARIABLE_SLOT
+							&& block[j]->assignment.expressions.back()->variable->slot == block[assignmentIndex]->assignment.variables.back().slot)
+						: block[j]->instruction.target != function.labels[extendedTargetLabel].target)
 					? function.get_label_from_id(block[j]->instruction.target) : function.labels.size(), &block[j]->assignment.expressions);
 				continue;
 			case AST_STATEMENT_ASSIGNMENT:
