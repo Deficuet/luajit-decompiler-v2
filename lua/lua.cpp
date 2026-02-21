@@ -1,17 +1,7 @@
 #include "..\main.h"
 
-Lua::Lua(
-	const Bytecode &bytecode, 
-	const Ast &ast, 
-	const std::wstring &filePath, 
-	const bool &minimizeDiffs, 
-	const bool &unrestrictedAscii
-): bytecode{bytecode}, ast{ast}, filePath{filePath}, minimizeDiffs{minimizeDiffs}, 
-	unrestrictedAscii{unrestrictedAscii}, outputMode{SINGLE_FILE} {  }
-
-Lua::Lua(const Bytecode &bytecode, const Ast &ast, HANDLE file, const bool &minimizeDiffs, const bool &unrestrictedAscii):
-	bytecode{bytecode}, ast{ast}, filePath{bytecode.filePath}, 
-	file{file}, minimizeDiffs{minimizeDiffs}, unrestrictedAscii{unrestrictedAscii}, outputMode{APPEND} {  }
+Lua::Lua(const std::wstring &identifier, const Bytecode &bytecode, const Ast &ast, const bool &minimizeDiffs, const bool &unrestrictedAscii)
+	: identifier{identifier}, bytecode{bytecode}, ast{ast}, minimizeDiffs{minimizeDiffs}, unrestrictedAscii{unrestrictedAscii} {  }
 
 Lua::~Lua() {
 	close_file();
@@ -845,7 +835,7 @@ void Lua::write_number(const double& number) {
 		if (!try_string_to_number(string, number)) {
 			string.resize(std::snprintf(nullptr, 0, "%1.17g", number));
 			std::snprintf(string.data(), string.size() + 1, "%1.17g", number);
-			assert(try_string_to_number(string, number), "Failed to convert number to valid string", filePath, DEBUG_INFO);
+			assert(try_string_to_number(string, number), "Failed to convert number to valid string", identifier, DEBUG_INFO);
 		}
 	}
 
@@ -1007,27 +997,9 @@ void Lua::write_indent() {
 	return write(std::string(indentLevel, '\t'));
 }
 
-void Lua::create_file() {
-	if (outputMode == SINGLE_FILE) {
-		file = CreateFileW(filePath.c_str(), GENERIC_WRITE, NULL, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
-		assert(file != INVALID_HANDLE_VALUE, "Unable to create file", filePath, DEBUG_INFO);
-	}
-}
-
-void Lua::close_file() {
-	if (outputMode == SINGLE_FILE) {
-		if (file == INVALID_HANDLE_VALUE) return;
-		CloseHandle(file);
-		file = INVALID_HANDLE_VALUE;
-	}
-}
-
-void Lua::write_file() {
-	if (outputMode == APPEND) {
-		write(NEW_LINE);
-	}
+void Lua::flush_buffer() {
 	DWORD charsWritten = 0;
-	assert(WriteFile(file, writeBuffer.data(), writeBuffer.size(), &charsWritten, NULL) && !(writeBuffer.size() - charsWritten), "Failed writing to file", filePath, DEBUG_INFO);
+	assert(WriteFile(file, writeBuffer.data(), writeBuffer.size(), &charsWritten, NULL) && !(writeBuffer.size() - charsWritten), "Failed writing to file", identifier, DEBUG_INFO);
 	writeBuffer.clear();
 	writeBuffer.shrink_to_fit();
 }

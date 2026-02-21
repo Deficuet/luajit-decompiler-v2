@@ -1,7 +1,4 @@
-enum InputMode {
-	FROM_FILE,
-	FROM_BYTES,
-};
+#pragma once
 
 class Bytecode {
 public:
@@ -17,15 +14,11 @@ public:
 	#include "constants.h"
 	#include "instructions.h"
 
-	Bytecode(const std::wstring &filePath);
-	Bytecode(const std::wstring &, const char *, size_t);
-	~Bytecode();
+	virtual ~Bytecode();
 
 	void operator()();
 
-	bool isFileMode() const;
-
-	const std::wstring filePath;
+	const std::wstring identifier;
 
 	struct {
 		uint8_t version = 0;
@@ -36,25 +29,48 @@ public:
 	const Prototype* main = nullptr;
 	uint64_t prototypesTotalSize = 0;
 
-private:
+protected:
 	static constexpr uint8_t MIN_PROTO_SIZE = 11;
 	static constexpr uint8_t MIN_FILE_SIZE = MIN_PROTO_SIZE + 7;
+	
+	Bytecode(const std::wstring &);
 
+	std::vector<uint8_t> fileBuffer;
+	uint64_t fileSize = 0;
+	uint64_t bytesUnread = 0;
+	HANDLE file = INVALID_HANDLE_VALUE;
+
+	virtual void open_file() {  };
+	virtual void close_file() {  }
+	virtual void read_buffer(const uint32_t& byteCount) = 0;
+
+private:
 	void read_header();
 	void read_prototypes();
-	void open_file();
-	void close_file();
 	void read_file(const uint32_t& byteCount);
 	uint32_t read_uleb128();
 	bool buffer_next_block();
-
-	HANDLE file = INVALID_HANDLE_VALUE;
-	const uint8_t * const array;
-
-	const InputMode inputMode;
-
-	uint64_t fileSize = 0;
-	uint64_t bytesUnread = 0;
-	std::vector<uint8_t> fileBuffer;
+	
 	std::vector<Prototype*> prototypes;
+};
+
+class MemoryBytecode : public Bytecode {
+public:
+	MemoryBytecode(const std::wstring &, const char *, size_t);
+
+protected:
+	void read_buffer(const uint32_t& byteCount) override;
+
+private:
+	const uint8_t * const array;
+};
+
+class FileBytecode : public Bytecode {
+public:
+	FileBytecode(const std::wstring &);
+
+protected:
+	void open_file() override;
+	void close_file() override;
+	void read_buffer(const uint32_t& byteCount) override;
 };

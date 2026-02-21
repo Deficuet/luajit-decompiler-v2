@@ -46,7 +46,7 @@ void Ast::build_functions(Function& function, uint32_t& functionCounter) {
 	function.usedGlobals.shrink_to_fit();
 	if (!function.hasDebugInfo) function.slotScopeCollector.build_upvalue_scopes();
 	build_slot_scopes(function, function.block, nullptr);
-	assert(function.slotScopeCollector.assert_scopes_closed(), "Failed to close slot scopes", bytecode.filePath, DEBUG_INFO);
+	assert(function.slotScopeCollector.assert_scopes_closed(), "Failed to close slot scopes", bytecode.identifier, DEBUG_INFO);
 	eliminate_slots(function, function.block, nullptr);
 	eliminate_conditions(function, function.block, nullptr);
 	build_if_statements(function, function.block, nullptr);
@@ -136,7 +136,7 @@ void Ast::assign_debug_info(Function& function) {
 		assert(!activeLocalScopes.size()
 			|| function.prototype.variableInfos[i].scopeBegin >= activeLocalScopes.back()
 			|| function.prototype.variableInfos[i].scopeEnd <= activeLocalScopes.back(),
-			"Illegal variable scope border overlap", bytecode.filePath, DEBUG_INFO);
+			"Illegal variable scope border overlap", bytecode.identifier, DEBUG_INFO);
 
 		while (activeLocalScopes.size() && function.prototype.variableInfos[i].scopeEnd > activeLocalScopes.back()) {
 			activeLocalScopes.pop_back();
@@ -158,7 +158,7 @@ void Ast::assign_debug_info(Function& function) {
 			case Bytecode::BC_OP_KNIL:
 				if ((function.block[index]->instruction.type == Bytecode::BC_OP_KPRI ? function.block[index]->instruction.a : function.block[index]->instruction.d) < activeLocalScopes.size()) {
 					while (activeLocalScopes.size() != function.locals.back().baseSlot) {
-						assert(activeLocalScopes.size() && activeLocalScopes.back() == function.prototype.variableInfos[i].scopeEnd, "Unable to build variable scope", bytecode.filePath, DEBUG_INFO);
+						assert(activeLocalScopes.size() && activeLocalScopes.back() == function.prototype.variableInfos[i].scopeEnd, "Unable to build variable scope", bytecode.identifier, DEBUG_INFO);
 						activeLocalScopes.pop_back();
 					}
 
@@ -345,7 +345,7 @@ void Ast::build_loops(Function& function) {
 			build_local_scopes(function, function.block[i]->block);
 			continue;
 		case Bytecode::BC_OP_LOOP:
-			assert(function.block[i]->instruction.target >= function.block[i]->instruction.id, "LOOP instruction has invalid jump target", bytecode.filePath, DEBUG_INFO);
+			assert(function.block[i]->instruction.target >= function.block[i]->instruction.id, "LOOP instruction has invalid jump target", bytecode.identifier, DEBUG_INFO);
 			function.remove_jump(function.block[i]->instruction.id, function.block[i]->instruction.target);
 
 			if (function.block[i]->instruction.target == function.block[i]->instruction.id) {
@@ -353,7 +353,7 @@ void Ast::build_loops(Function& function) {
 					&& function.block[i + 1]->type == AST_STATEMENT_GOTO
 					&& function.block[i + 1]->instruction.target <= function.block[i]->instruction.id
 					&& !function.is_valid_label(function.block[i + 1]->instruction.label),
-					"Invalid goto loop", bytecode.filePath, DEBUG_INFO);
+					"Invalid goto loop", bytecode.identifier, DEBUG_INFO);
 				function.block[i]->type = AST_STATEMENT_EMPTY;
 				function.block[i + 1]->instruction.type = function.block[i]->instruction.type;
 				continue;
@@ -712,7 +712,7 @@ void Ast::build_expressions(Function& function, std::vector<Statement*>& block) 
 				block[i]->assignment.variables.back().isMultres = true;
 				block[i]->assignment.variables.back().table = new_slot(block[i]->instruction.a - 1);
 				assert(function.get_number_constant(block[i]->instruction.d).type == Bytecode::BC_KNUM_NUM && (uint32_t)function.get_number_constant(block[i]->instruction.d).number,
-					"Multres table index is not a valid number constant", bytecode.filePath, DEBUG_INFO);
+					"Multres table index is not a valid number constant", bytecode.identifier, DEBUG_INFO);
 				block[i]->assignment.variables.back().multresIndex = function.get_number_constant(block[i]->instruction.d).number;
 				block[i]->assignment.expressions.back() = new_slot(block[i]->instruction.a);
 				block[i]->assignment.expressions.back()->variable->isMultres = true;
@@ -907,7 +907,7 @@ void Ast::build_expressions(Function& function, std::vector<Statement*>& block) 
 				|| (block[i]->locals
 					&& block[i]->assignment.variables.back().slot == block[i]->locals->baseSlot
 					&& block[i]->locals->names.size() == 1),
-				"Numeric for loop variable does not match with debug info", bytecode.filePath, DEBUG_INFO);
+				"Numeric for loop variable does not match with debug info", bytecode.identifier, DEBUG_INFO);
 			block[i]->assignment.expressions.resize(3, nullptr);
 			block[i]->assignment.expressions[0] = new_slot(block[i]->instruction.a);
 			block[i]->assignment.expressions[1] = new_slot(block[i]->instruction.a + 1);
@@ -926,7 +926,7 @@ void Ast::build_expressions(Function& function, std::vector<Statement*>& block) 
 				|| (block[i]->locals
 					&& block[i]->assignment.variables.front().slot == block[i]->locals->baseSlot
 					&& block[i]->locals->names.size() == block[i]->assignment.variables.size()),
-				"Generic for loop variables do not match with debug info", bytecode.filePath, DEBUG_INFO);
+				"Generic for loop variables do not match with debug info", bytecode.identifier, DEBUG_INFO);
 			block[i]->assignment.expressions.resize(3, nullptr);
 			block[i]->assignment.expressions[0] = new_slot(block[i]->instruction.a - 3);
 			block[i]->assignment.expressions[1] = new_slot(block[i]->instruction.a - 2);
@@ -972,7 +972,7 @@ void Ast::build_slot_scopes(Function& function, std::vector<Statement*>& block, 
 		case AST_STATEMENT_NUMERIC_FOR:
 		case AST_STATEMENT_GENERIC_FOR:
 			for (uint32_t j = block[i]->assignment.variables.size(); j--;) {
-				assert(!function.slotScopeCollector.slotInfos[block[i]->assignment.variables[j].slot].activeSlotScope, "Slot scope does not match with for loop variable", bytecode.filePath, DEBUG_INFO);
+				assert(!function.slotScopeCollector.slotInfos[block[i]->assignment.variables[j].slot].activeSlotScope, "Slot scope does not match with for loop variable", bytecode.identifier, DEBUG_INFO);
 				function.slotScopeCollector.begin_scope(block[i]->assignment.variables[j].slot, block[i]->instruction.target - 1);
 			}
 		case AST_STATEMENT_LOOP:
@@ -989,7 +989,7 @@ void Ast::build_slot_scopes(Function& function, std::vector<Statement*>& block, 
 
 				for (uint8_t k = j; true; k--) {
 					assert(function.slotScopeCollector.slotInfos[k].activeSlotScope && function.slotScopeCollector.slotInfos[k].minScopeBegin == INVALID_ID,
-						"Slot scope does not match with variable debug info", bytecode.filePath, DEBUG_INFO);
+						"Slot scope does not match with variable debug info", bytecode.identifier, DEBUG_INFO);
 					block.emplace(block.begin() + i + 1, build_nil_assignment(k));
 					function.slotScopeCollector.close_scope(k, block[i + 1]->assignment.variables.back().slotScope, block[i]->locals->scopeEnd);
 					if (k == block[i]->locals->baseSlot) break;
@@ -1011,7 +1011,7 @@ void Ast::build_slot_scopes(Function& function, std::vector<Statement*>& block, 
 
 				for (uint8_t k = j; true; k--) {
 					assert(function.slotScopeCollector.slotInfos[k].activeSlotScope && function.slotScopeCollector.slotInfos[k].minScopeBegin == INVALID_ID,
-						"Slot scope does not match with variable debug info", bytecode.filePath, DEBUG_INFO);
+						"Slot scope does not match with variable debug info", bytecode.identifier, DEBUG_INFO);
 					block[i]->block.emplace(block[i]->block.begin(), build_nil_assignment(k));
 					function.slotScopeCollector.close_scope(k, block[i]->block.front()->assignment.variables.back().slotScope, block[i]->locals->scopeBegin);
 					if (k == block[i]->assignment.variables.back().slot + 1) break;
@@ -1400,7 +1400,7 @@ void Ast::build_slot_scopes(Function& function, std::vector<Statement*>& block, 
 			|| ((*block[i]->assignment.variables.front().slotScope)->usages == 1
 				&& (!function.slotScopeCollector.slotInfos[block[i]->assignment.variables.front().slot].activeSlotScope
 					|| *function.slotScopeCollector.slotInfos[block[i]->assignment.variables.front().slot].activeSlotScope != *block[i]->assignment.variables.front().slotScope)),
-			"Multres assignment has invalid number of usages", bytecode.filePath, DEBUG_INFO);
+			"Multres assignment has invalid number of usages", bytecode.identifier, DEBUG_INFO);
 
 		for (uint8_t j = block[i]->assignment.openSlots.size(); j--;) {
 			function.slotScopeCollector.add_to_scope((*block[i]->assignment.openSlots[j])->variable->slot, (*block[i]->assignment.openSlots[j])->variable->slotScope, id);
@@ -1490,7 +1490,7 @@ void Ast::eliminate_slots(Function& function, std::vector<Statement*>& block, Bl
 				switch (block[i - 1]->type) {
 				case AST_STATEMENT_ASSIGNMENT:
 					if (block[i - 1]->assignment.variables.front().slot <= block[i]->assignment.expressions[block[i]->assignment.openSlots.size() - 1]->variable->slot) break;
-					assert(block[i - 1]->assignment.variables.size() == 1 && !(*block[i - 1]->assignment.variables.back().slotScope)->usages, "Invalid expression list assignment", bytecode.filePath, DEBUG_INFO);
+					assert(block[i - 1]->assignment.variables.size() == 1 && !(*block[i - 1]->assignment.variables.back().slotScope)->usages, "Invalid expression list assignment", bytecode.identifier, DEBUG_INFO);
 				case AST_STATEMENT_FUNCTION_CALL:
 					block[i]->assignment.expressions.emplace(block[i]->assignment.expressions.begin() + block[i]->assignment.openSlots.size(), block[i - 1]->assignment.expressions.back());
 					block[i]->instruction.label = block[i - 1]->instruction.label;
@@ -1502,7 +1502,7 @@ void Ast::eliminate_slots(Function& function, std::vector<Statement*>& block, Bl
 				if (block[i - 1]->type == AST_STATEMENT_ASSIGNMENT && block[i - 1]->assignment.variables.size() != 1) {
 					assert(block[i]->assignment.expressions.size() == block[i]->assignment.openSlots.size()
 						&& block[i]->assignment.expressions.back()->variable->slot == block[i - 1]->assignment.variables.back().slot,
-						"Invalid multres expression list assignment", bytecode.filePath, DEBUG_INFO);
+						"Invalid multres expression list assignment", bytecode.identifier, DEBUG_INFO);
 
 					while (true) {
 						function.slotScopeCollector.remove_scope(block[i]->assignment.expressions.back()->variable->slot, block[i]->assignment.expressions.back()->variable->slotScope);
@@ -1649,7 +1649,7 @@ void Ast::eliminate_slots(Function& function, std::vector<Statement*>& block, Bl
 
 				if (block[i - 1]->assignment.variables.back().slot != (*block[i]->assignment.openSlots[j])->variable->slot) continue;
 				assert(block[i - 1]->assignment.variables.back().isMultres == (*block[i]->assignment.openSlots[j])->variable->isMultres,
-					"Multres type mismatch when trying to eliminate slot", bytecode.filePath, DEBUG_INFO);
+					"Multres type mismatch when trying to eliminate slot", bytecode.identifier, DEBUG_INFO);
 				expression = *block[i]->assignment.openSlots[j];
 				*block[i]->assignment.openSlots[j] = block[i - 1]->assignment.expressions.back();
 
@@ -1670,7 +1670,7 @@ void Ast::eliminate_slots(Function& function, std::vector<Statement*>& block, Bl
 		assert(!block[i]->assignment.openSlots.size()
 			|| (*block[i]->assignment.openSlots.back())->type != AST_EXPRESSION_VARIABLE
 			|| !(*block[i]->assignment.openSlots.back())->variable->isMultres,
-			"Unable to eliminate multres slot", bytecode.filePath, DEBUG_INFO);
+			"Unable to eliminate multres slot", bytecode.identifier, DEBUG_INFO);
 
 		switch (block[i]->type) {
 		case AST_STATEMENT_NUMERIC_FOR:
@@ -2022,7 +2022,7 @@ void Ast::eliminate_slots(Function& function, std::vector<Statement*>& block, Bl
 						}
 					}
 
-					assert(!block[i]->assignment.variables.back().isMultres, "Unable to eliminate multres table index", bytecode.filePath, DEBUG_INFO);
+					assert(!block[i]->assignment.variables.back().isMultres, "Unable to eliminate multres table index", bytecode.identifier, DEBUG_INFO);
 					break;
 				}
 			}
@@ -2429,13 +2429,13 @@ void Ast::eliminate_conditions(Function& function, std::vector<Statement*>& bloc
 				ConditionBuilder conditionBuilder(ConditionBuilder::STATEMENT, *this, INVALID_ID, targetLabel, extendedTargetLabel);
 
 				for (uint32_t j = index; j <= i; j++) {
-					assert(!block[j]->assignment.variables.size(), "Failed to eliminate all test and copy conditions", bytecode.filePath, DEBUG_INFO);
+					assert(!block[j]->assignment.variables.size(), "Failed to eliminate all test and copy conditions", bytecode.identifier, DEBUG_INFO);
 					conditionBuilder.add_node(conditionBuilder.get_node_type(block[j]->instruction.type, block[j]->condition.swapped),
 						block[j]->instruction.label, function.get_label_from_id(block[j]->instruction.target), &block[j]->assignment.expressions);
 				}
 
 				expressions.back() = conditionBuilder.build_condition();
-				assert(expressions.back(), "Failed to build condition", bytecode.filePath, DEBUG_INFO);
+				assert(expressions.back(), "Failed to build condition", bytecode.identifier, DEBUG_INFO);
 				block[i]->assignment.expressions = expressions;
 
 				for (uint32_t j = index; j <= i; j++) {
@@ -2606,7 +2606,7 @@ void Ast::build_multi_assignment(Function& function, std::vector<Statement*>& bl
 					&& !function.is_valid_label(block[i]->instruction.label)
 					&& block[i - 1]->type == AST_STATEMENT_ASSIGNMENT
 					&& block[i - 1]->assignment.variables.size() == 1,
-					"Unable to eliminate vararg with zero returns", bytecode.filePath, DEBUG_INFO);
+					"Unable to eliminate vararg with zero returns", bytecode.identifier, DEBUG_INFO);
 				block[i - 1]->assignment.expressions.emplace_back(block[i]->assignment.expressions.back());
 				block.erase(block.begin() + i);
 				i--;
@@ -2891,7 +2891,7 @@ void Ast::build_if_statements(Function& function, std::vector<Statement*>& block
 				targetLabel = INVALID_ID;
 			}
 
-			assert(targetLabel != INVALID_ID, "Failed to build if statement", bytecode.filePath, DEBUG_INFO);
+			assert(targetLabel != INVALID_ID, "Failed to build if statement", bytecode.identifier, DEBUG_INFO);
 			block[i]->block.reserve(index - i);
 			block[i]->block.insert(block[i]->block.begin(), block.begin() + i + 1, block.begin() + index + 1);
 			block.erase(block.begin() + i + 1, block.begin() + index + 1);
@@ -3436,8 +3436,8 @@ void Ast::check_valid_name(Constant* const& constant) {
 
 void Ast::check_special_number(Expression* const& expression, const bool& isCdata) {
 	const uint64_t rawDouble = std::bit_cast<uint64_t>(expression->constant->number);
-	if ((rawDouble & DOUBLE_EXPONENT) != DOUBLE_SPECIAL) return assert(rawDouble != DOUBLE_NEGATIVE_ZERO || isCdata, "Number constant is negative zero", bytecode.filePath, DEBUG_INFO);
-	assert(!(rawDouble & DOUBLE_FRACTION), "Number constant is NaN", bytecode.filePath, DEBUG_INFO);
+	if ((rawDouble & DOUBLE_EXPONENT) != DOUBLE_SPECIAL) return assert(rawDouble != DOUBLE_NEGATIVE_ZERO || isCdata, "Number constant is negative zero", bytecode.identifier, DEBUG_INFO);
+	assert(!(rawDouble & DOUBLE_FRACTION), "Number constant is NaN", bytecode.identifier, DEBUG_INFO);
 	if (isCdata) return;
 	expression->set_type(AST_EXPRESSION_BINARY_OPERATION);
 	expression->binaryOperation->type = AST_BINARY_DIVISION;

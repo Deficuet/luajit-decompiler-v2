@@ -52,13 +52,13 @@ string byte_to_string(const uint8_t &byte) {
 }
 
 extern "C" {
-	EXPORT void ljd_file_to_file(
+	LJD_API void ljd_file_to_file(
 		const wchar_t *input, 
 		const wchar_t *output
 	) {
-		Bytecode bytecode{input};
+		FileBytecode bytecode{input};
 		Ast ast{bytecode, false, false};
-		Lua lua{bytecode, ast, output, false, true};
+		FileLua lua{bytecode, ast, output, false, true};
 
 		try {
 			bytecode();
@@ -67,19 +67,19 @@ extern "C" {
 		} catch (const Error &error) {
 			wcout << error << endl;
 		} catch (...) {
-			wcout << "Unknown exception in file: " << bytecode.filePath << endl;
+			wcout << "Unknown exception in file: " << bytecode.identifier << endl;
 		}
 	}
 
-	EXPORT void ljd_bytes_to_file(
+	LJD_API void ljd_bytes_to_file(
 		const wchar_t *name,
 		const char *array,
 		size_t inSize,
 		const wchar_t *outPath
 	) {
-		Bytecode bytecode{name, array, inSize};
+		MemoryBytecode bytecode{name, array, inSize};
 		Ast ast{bytecode, false, false};
-		Lua lua{bytecode, ast, outPath, false, true};
+		FileLua lua{bytecode, ast, outPath, false, true};
 
 		try {
 			bytecode();
@@ -88,7 +88,7 @@ extern "C" {
 		} catch (const Error &error) {
 			wcout << error << endl;
 		} catch (...) {
-			wcout << "Unknown exception in file: " << bytecode.filePath << endl;
+			wcout << "Unknown exception in file: " << bytecode.identifier << endl;
 		}
 	}
 	
@@ -100,15 +100,15 @@ extern "C" {
 	 * FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, 
 	 * NULL
 	 */
-	EXPORT void ljd_bytes_to_file_append(
+	LJD_API void ljd_bytes_to_file_append(
 		HANDLE file, 
 		const wchar_t *name, 
 		const char *array, 
 		size_t inSize
 	) {
-		Bytecode bytecode{name, array, inSize};
+		MemoryBytecode bytecode{name, array, inSize};
 		Ast ast{bytecode, false, false};
-		Lua lua{bytecode, ast, file, false, true};
+		FileLuaAppend lua{bytecode, ast, file, false, true};
 
 		try {
 			bytecode();
@@ -117,7 +117,30 @@ extern "C" {
 		} catch (const Error &error) {
 			wcout << error << endl;
 		} catch (...) {
-			wcout << "Unknown exception in file: " << bytecode.filePath << endl;
+			wcout << "Unknown exception in file: " << bytecode.identifier << endl;
+		}
+	}
+
+	LJD_API void ljd_bytes_to_buffer(
+		const wchar_t *name, 
+		const char *array, 
+		size_t inSize, 
+		CodeCallback callback
+	) {
+		MemoryBytecode bytecode{name, array, inSize};
+		Ast ast{bytecode, false, false};
+		MemoryLua lua{bytecode, ast, false, true};
+
+		try {
+			bytecode();
+			ast();
+			lua();
+			const std::string &buf = lua.get_buffer();
+			callback(buf.data(), buf.size());
+		} catch (const Error &error) {
+			wcout << error << endl;
+		} catch (...) {
+			wcout << "Unknown exception in file: " << bytecode.identifier << endl;
 		}
 	}
 }

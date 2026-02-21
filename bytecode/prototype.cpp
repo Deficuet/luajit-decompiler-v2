@@ -9,20 +9,20 @@ void Bytecode::Prototype::operator()(std::vector<Prototype*>& unlinkedPrototypes
 	read_constants(unlinkedPrototypes);
 	read_number_constants();
 	read_debug_info();
-	assert(prototypeSize == bytecode.fileBuffer.size(), "Prototype has unread bytes left", bytecode.filePath, DEBUG_INFO);
+	assert(prototypeSize == bytecode.fileBuffer.size(), "Prototype has unread bytes left", bytecode.identifier, DEBUG_INFO);
 	unlinkedPrototypes.emplace_back(this);
 }
 
 void Bytecode::Prototype::read_header() {
 	header.flags = get_next_byte();
-	assert(!(header.flags & ~(BC_PROTO_CHILD | BC_PROTO_VARARG | BC_PROTO_FFI)), "Prototype has invalid flags (" + byte_to_string(header.flags) + ")", bytecode.filePath, DEBUG_INFO);
+	assert(!(header.flags & ~(BC_PROTO_CHILD | BC_PROTO_VARARG | BC_PROTO_FFI)), "Prototype has invalid flags (" + byte_to_string(header.flags) + ")", bytecode.identifier, DEBUG_INFO);
 	header.parameters = get_next_byte();
 	header.framesize = get_next_byte();
 	upvalues.resize(get_next_byte());
 	constants.resize(get_uleb128());
 	numberConstants.resize(get_uleb128());
 	instructions.resize(get_uleb128());
-	assert(instructions.size(), "Prototype has no instructions", bytecode.filePath, DEBUG_INFO);
+	assert(instructions.size(), "Prototype has no instructions", bytecode.identifier, DEBUG_INFO);
 	if (bytecode.header.flags & BC_F_STRIP || !get_uleb128()) return;
 	header.hasDebugInfo = true;
 	header.firstLine = get_uleb128();
@@ -32,7 +32,7 @@ void Bytecode::Prototype::read_header() {
 void Bytecode::Prototype::read_instructions() {
 	for (uint32_t i = 0; i < instructions.size(); i++) {
 		instructions[i].type = get_op_type(get_next_byte(), bytecode.header.version);
-		assert(instructions[i].type < BC_OP_INVALID, "Prototype has invalid instruction (" + byte_to_string(instructions[i].type) + ")", bytecode.filePath, DEBUG_INFO);
+		assert(instructions[i].type < BC_OP_INVALID, "Prototype has invalid instruction (" + byte_to_string(instructions[i].type) + ")", bytecode.identifier, DEBUG_INFO);
 
 		switch (instructions[i].type) {
 		case BC_OP_ISTYPE:
@@ -54,7 +54,7 @@ void Bytecode::Prototype::read_instructions() {
 		case BC_OP_JFUNCV:
 		case BC_OP_FUNCC:
 		case BC_OP_FUNCCW:
-			assert(false, "Prototype has unsupported instruction (" + byte_to_string(instructions[i].type) + ")", bytecode.filePath, DEBUG_INFO);
+			assert(false, "Prototype has unsupported instruction (" + byte_to_string(instructions[i].type) + ")", bytecode.identifier, DEBUG_INFO);
 		}
 
 		instructions[i].a = get_next_byte();
@@ -85,7 +85,7 @@ void Bytecode::Prototype::read_constants(std::vector<Prototype*>& unlinkedProtot
 		switch (type) {
 		case BC_KGC_CHILD:
 			constants[i].type = BC_KGC_CHILD;
-			assert(unlinkedPrototypes.size(), "Failed to link child prototype", bytecode.filePath, DEBUG_INFO);
+			assert(unlinkedPrototypes.size(), "Failed to link child prototype", bytecode.identifier, DEBUG_INFO);
 			constants[i].prototype = unlinkedPrototypes.back();
 			unlinkedPrototypes.pop_back();
 			continue;
@@ -105,7 +105,7 @@ void Bytecode::Prototype::read_constants(std::vector<Prototype*>& unlinkedProtot
 
 			continue;
 		case BC_KGC_COMPLEX:
-			assert(!get_uleb128() && !get_uleb128(), "Prototype has invalid cdata constant", bytecode.filePath, DEBUG_INFO);
+			assert(!get_uleb128() && !get_uleb128(), "Prototype has invalid cdata constant", bytecode.identifier, DEBUG_INFO);
 		case BC_KGC_I64:
 		case BC_KGC_U64:
 			constants[i].type = (BC_KGC)type;
@@ -180,7 +180,7 @@ void Bytecode::Prototype::read_debug_info() {
 		}
 
 		scopeOffset += get_uleb128();
-		assert(scopeOffset != 1, "Prototype variable has invalid scope", bytecode.filePath, DEBUG_INFO);
+		assert(scopeOffset != 1, "Prototype variable has invalid scope", bytecode.identifier, DEBUG_INFO);
 
 		if (!scopeOffset) {
 			variableInfos.back().isParameter = true;
@@ -192,12 +192,12 @@ void Bytecode::Prototype::read_debug_info() {
 		}
 	}
 
-	assert(parameterCount == header.parameters, "Prototype parameter count does not\nmatch with debug info", bytecode.filePath, DEBUG_INFO);
+	assert(parameterCount == header.parameters, "Prototype parameter count does not\nmatch with debug info", bytecode.identifier, DEBUG_INFO);
 	variableInfos.shrink_to_fit();
 }
 
 uint8_t Bytecode::Prototype::get_next_byte() {
-	assert(prototypeSize < bytecode.fileBuffer.size(), "Prototype read would exceed end of buffer", bytecode.filePath, DEBUG_INFO);
+	assert(prototypeSize < bytecode.fileBuffer.size(), "Prototype read would exceed end of buffer", bytecode.identifier, DEBUG_INFO);
 	return bytecode.fileBuffer[prototypeSize++];
 }
 
