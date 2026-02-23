@@ -1,7 +1,7 @@
 #include "..\main.h"
 
-MemoryBytecode::MemoryBytecode(const std::wstring &identifier, const char *array, size_t size)
-    : Bytecode(identifier), array{(uint8_t *)array}
+MemoryBytecode::MemoryBytecode(const NameBuilder *identifierBuilder, const char *array, size_t size)
+    : Bytecode(identifierBuilder), array{(uint8_t *)array}
 {
     fileSize = size;
     bytesUnread = size;

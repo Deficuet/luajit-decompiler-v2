@@ -18,7 +18,7 @@ public:
 
 	void operator()();
 
-	const std::wstring identifier;
+	const NameBuilder *identifierBuilder;
 
 	struct {
 		uint8_t version = 0;
@@ -33,14 +33,14 @@ protected:
 	static constexpr uint8_t MIN_PROTO_SIZE = 11;
 	static constexpr uint8_t MIN_FILE_SIZE = MIN_PROTO_SIZE + 7;
 	
-	Bytecode(const std::wstring &);
+	Bytecode(const NameBuilder *);
 
 	std::vector<uint8_t> fileBuffer;
 	uint64_t fileSize = 0;
 	uint64_t bytesUnread = 0;
 	HANDLE file = INVALID_HANDLE_VALUE;
 
-	virtual void open_file() {  };
+	virtual void open_file() {  }
 	virtual void close_file() {  }
 	virtual void read_buffer(const uint32_t& byteCount) = 0;
 
@@ -56,7 +56,7 @@ private:
 
 class MemoryBytecode : public Bytecode {
 public:
-	MemoryBytecode(const std::wstring &, const char *, size_t);
+	MemoryBytecode(const NameBuilder *, const char *, size_t);
 
 protected:
 	void read_buffer(const uint32_t& byteCount) override;
@@ -67,10 +67,13 @@ private:
 
 class FileBytecode : public Bytecode {
 public:
-	FileBytecode(const std::wstring &);
+	FileBytecode(const NameBuilder *, const wchar_t *);
 
 protected:
 	void open_file() override;
 	void close_file() override;
 	void read_buffer(const uint32_t& byteCount) override;
+
+private:
+	const wchar_t *filePath;
 };

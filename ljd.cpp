@@ -5,27 +5,30 @@
 using namespace std;
 
 struct Error {
-	const string message;
-	const wstring &filePath;
+	const string_view message;
+	const NameBuilder *nameBuilder;
 	const char *function;
 	const char *source;
 	const uint32_t line;
 };
 
 wostream &operator<<(wostream &wout, const Error &error) {
+	size_t nameLength;
+	const wchar_t *name = error.nameBuilder->callback(error.nameBuilder->userData, &nameLength);
+
 	wout << "ljd: Error running ";
 	wout << error.function << ". ";
-	wout << "File: " << error.filePath << ", ";
+	wout << "File: " << std::wstring_view(name, nameLength) << ", ";
 	wout << "Source: ";
 	wout << error.source << ": " << error.line << ". ";
-	wout << error.message.c_str();
+	wout << error.message.data();
 	return wout;
 }
 
 void assert(
 	const bool assertion, 
-	const string message, 
-	const wstring &filePath, 
+	const string &message, 
+	const NameBuilder *nameBuilder, 
 	const char *function, 
 	const char *source, 
 	const uint32_t line
@@ -33,7 +36,7 @@ void assert(
 	if (!assertion) {
 		throw Error {
 			.message = message,
-			.filePath = filePath,
+			.nameBuilder = nameBuilder,
 			.function = function,
 			.source = source,
 			.line = line
@@ -51,12 +54,22 @@ string byte_to_string(const uint8_t &byte) {
 	return string;
 }
 
+static const wchar_t *wstring_as_is_builder(void *userData, size_t *lengthPtr) {
+	auto filePath = static_cast<const wchar_t *>(userData);
+	if (lengthPtr) {
+		*lengthPtr = wcslen(filePath);
+	}
+	return filePath;
+}
+
 extern "C" {
 	LJD_API void ljd_file_to_file(
 		const wchar_t *input, 
 		const wchar_t *output
 	) {
-		FileBytecode bytecode{input};
+		NameBuilder nameBuilder{.callback = wstring_as_is_builder, .userData = (void *)input};
+
+		FileBytecode bytecode{&nameBuilder, input};
 		Ast ast{bytecode, false, false};
 		FileLua lua{bytecode, ast, output, false, true};
 
@@ -67,17 +80,17 @@ extern "C" {
 		} catch (const Error &error) {
 			wcout << error << endl;
 		} catch (...) {
-			wcout << "Unknown exception in file: " << bytecode.identifier << endl;
+			wcout << "Unknown exception in file: " << bytecode.identifierBuilder << endl;
 		}
 	}
 
 	LJD_API void ljd_bytes_to_file(
-		const wchar_t *name,
 		const char *array,
 		size_t inSize,
+		const NameBuilder *nameBuilder,
 		const wchar_t *outPath
 	) {
-		MemoryBytecode bytecode{name, array, inSize};
+		MemoryBytecode bytecode{nameBuilder, array, inSize};
 		Ast ast{bytecode, false, false};
 		FileLua lua{bytecode, ast, outPath, false, true};
 
@@ -88,7 +101,7 @@ extern "C" {
 		} catch (const Error &error) {
 			wcout << error << endl;
 		} catch (...) {
-			wcout << "Unknown exception in file: " << bytecode.identifier << endl;
+			wcout << "Unknown exception in file: " << bytecode.identifierBuilder << endl;
 		}
 	}
 	
@@ -102,11 +115,11 @@ extern "C" {
 	 */
 	LJD_API void ljd_bytes_to_file_append(
 		HANDLE file, 
-		const wchar_t *name, 
 		const char *array, 
-		size_t inSize
+		size_t inSize,
+		const NameBuilder *nameBuilder
 	) {
-		MemoryBytecode bytecode{name, array, inSize};
+		MemoryBytecode bytecode{nameBuilder, array, inSize};
 		Ast ast{bytecode, false, false};
 		FileLuaAppend lua{bytecode, ast, file, false, true};
 
@@ -117,17 +130,17 @@ extern "C" {
 		} catch (const Error &error) {
 			wcout << error << endl;
 		} catch (...) {
-			wcout << "Unknown exception in file: " << bytecode.identifier << endl;
+			wcout << "Unknown exception in file: " << bytecode.identifierBuilder << endl;
 		}
 	}
 
 	LJD_API void ljd_bytes_to_buffer(
-		const wchar_t *name, 
 		const char *array, 
 		size_t inSize, 
+		const NameBuilder *nameBuilder,
 		CodeCallback callback
 	) {
-		MemoryBytecode bytecode{name, array, inSize};
+		MemoryBytecode bytecode{nameBuilder, array, inSize};
 		Ast ast{bytecode, false, false};
 		MemoryLua lua{bytecode, ast, false, true};
 
@@ -140,7 +153,7 @@ extern "C" {
 		} catch (const Error &error) {
 			wcout << error << endl;
 		} catch (...) {
-			wcout << "Unknown exception in file: " << bytecode.identifier << endl;
+			wcout << "Unknown exception in file: " << bytecode.identifierBuilder << endl;
 		}
 	}
 }

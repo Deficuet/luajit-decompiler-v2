@@ -6,13 +6,13 @@ public:
 
 	void operator()();
 
-	const std::wstring identifier;
+	const NameBuilder *identifierBuilder;
 
 protected:
 	static constexpr char UTF8_BOM[] = "\xEF\xBB\xBF";
 	static constexpr char NEW_LINE[] = "\r\n";
 
-	Lua(const std::wstring &, const Bytecode &, const Ast &, const bool &, const bool &);
+	Lua(const NameBuilder *, const Bytecode &, const Ast &, const bool &, const bool &);
 
 	HANDLE file = INVALID_HANDLE_VALUE;
 	std::string writeBuffer;
@@ -51,12 +51,15 @@ private:
 
 class FileLua : public Lua {
 public:
-	FileLua(const Bytecode &, const Ast &, const std::wstring &, const bool &, const bool &);
+	FileLua(const Bytecode &, const Ast &, const wchar_t *, const bool &, const bool &);
 
 protected:
 	void create_file() override;
 	void write_file() override;
 	void close_file() override;
+
+private:
+	const wchar_t *filePath;
 };
 
 class FileLuaAppend : public Lua {

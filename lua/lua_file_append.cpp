@@ -6,7 +6,7 @@ FileLuaAppend::FileLuaAppend(
     HANDLE hFile,
     const bool &minimizeDiffs,
     const bool &unrestrictedAscii
-) : Lua(bytecode.identifier, bytecode, ast, minimizeDiffs, unrestrictedAscii) {
+) : Lua(bytecode.identifierBuilder, bytecode, ast, minimizeDiffs, unrestrictedAscii) {
     file = hFile;
 }
 

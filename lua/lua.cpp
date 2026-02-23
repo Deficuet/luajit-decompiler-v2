@@ -1,7 +1,7 @@
 #include "..\main.h"
 
-Lua::Lua(const std::wstring &identifier, const Bytecode &bytecode, const Ast &ast, const bool &minimizeDiffs, const bool &unrestrictedAscii)
-	: identifier{identifier}, bytecode{bytecode}, ast{ast}, minimizeDiffs{minimizeDiffs}, unrestrictedAscii{unrestrictedAscii} {  }
+Lua::Lua(const NameBuilder *identifierBuilder, const Bytecode &bytecode, const Ast &ast, const bool &minimizeDiffs, const bool &unrestrictedAscii)
+	: identifierBuilder{identifierBuilder}, bytecode{bytecode}, ast{ast}, minimizeDiffs{minimizeDiffs}, unrestrictedAscii{unrestrictedAscii} {  }
 
 Lua::~Lua() {
 	close_file();
@@ -835,7 +835,7 @@ void Lua::write_number(const double& number) {
 		if (!try_string_to_number(string, number)) {
 			string.resize(std::snprintf(nullptr, 0, "%1.17g", number));
 			std::snprintf(string.data(), string.size() + 1, "%1.17g", number);
-			assert(try_string_to_number(string, number), "Failed to convert number to valid string", identifier, DEBUG_INFO);
+			assert(try_string_to_number(string, number), "Failed to convert number to valid string", identifierBuilder, DEBUG_INFO);
 		}
 	}
 
@@ -999,7 +999,7 @@ void Lua::write_indent() {
 
 void Lua::flush_buffer() {
 	DWORD charsWritten = 0;
-	assert(WriteFile(file, writeBuffer.data(), writeBuffer.size(), &charsWritten, NULL) && !(writeBuffer.size() - charsWritten), "Failed writing to file", identifier, DEBUG_INFO);
+	assert(WriteFile(file, writeBuffer.data(), writeBuffer.size(), &charsWritten, NULL) && !(writeBuffer.size() - charsWritten), "Failed writing to file", identifierBuilder, DEBUG_INFO);
 	writeBuffer.clear();
 	writeBuffer.shrink_to_fit();
 }

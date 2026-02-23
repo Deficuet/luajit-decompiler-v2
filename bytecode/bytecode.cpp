@@ -1,7 +1,7 @@
 #include "..\main.h"
 
-Bytecode::Bytecode(const std::wstring &identifier):
-	identifier{identifier} {  }
+Bytecode::Bytecode(const NameBuilder *identifierBuilder)
+	: identifierBuilder{identifierBuilder} {  }
 
 Bytecode::~Bytecode() {
 	close_file();
@@ -26,12 +26,12 @@ void Bytecode::read_header() {
 	assert(fileBuffer[0] == BC_HEADER[0] && fileBuffer[1] == BC_HEADER[1] && fileBuffer[2] == BC_HEADER[2],
 		"Invalid header:\nExpected bytes " + byte_to_string(BC_HEADER[0]) + " " + byte_to_string(BC_HEADER[1]) + " " + byte_to_string(BC_HEADER[2])
 		+ ", got " + byte_to_string(fileBuffer[0]) + " " + byte_to_string(fileBuffer[1]) + " " + byte_to_string(fileBuffer[2])
-		+ "\n\nFile does not contain valid LuaJIT bytecode", identifier, DEBUG_INFO);
+		+ "\n\nFile does not contain valid LuaJIT bytecode", identifierBuilder, DEBUG_INFO);
 	header.version = fileBuffer[3];
-	assert(header.version == BC_VERSION_1 || header.version == BC_VERSION_2, "Invalid bytecode version (" + byte_to_string(fileBuffer[3]) + ")", identifier, DEBUG_INFO);
+	assert(header.version == BC_VERSION_1 || header.version == BC_VERSION_2, "Invalid bytecode version (" + byte_to_string(fileBuffer[3]) + ")", identifierBuilder, DEBUG_INFO);
 	header.flags = fileBuffer[4];
-	assert(!(header.flags & ~(BC_F_BE | BC_F_STRIP | BC_F_FFI | (header.version == BC_VERSION_2 ? BC_F_FR2 : 0))), "Invalid flags (" + byte_to_string(header.flags) + ")", identifier, DEBUG_INFO);
-	assert(!(header.flags & BC_F_BE), "Big endian support not implemented", identifier, DEBUG_INFO); //TODO
+	assert(!(header.flags & ~(BC_F_BE | BC_F_STRIP | BC_F_FFI | (header.version == BC_VERSION_2 ? BC_F_FR2 : 0))), "Invalid flags (" + byte_to_string(header.flags) + ")", identifierBuilder, DEBUG_INFO);
+	assert(!(header.flags & BC_F_BE), "Big endian support not implemented", identifierBuilder, DEBUG_INFO); //TODO
 	if (header.flags & BC_F_STRIP) return;
 	read_file(read_uleb128());
 	header.chunkname.resize(fileBuffer.size());
@@ -42,22 +42,22 @@ void Bytecode::read_prototypes() {
 	std::vector<Prototype*> unlinkedPrototypes;
 
 	while (buffer_next_block()) {
-		assert(fileBuffer.size() >= MIN_PROTO_SIZE, "Prototype is too short", identifier, DEBUG_INFO);
+		assert(fileBuffer.size() >= MIN_PROTO_SIZE, "Prototype is too short", identifierBuilder, DEBUG_INFO);
 		prototypes.emplace_back(new Prototype(*this));
 		(*prototypes.back())(unlinkedPrototypes);
 	}
 
-	assert(unlinkedPrototypes.size() == 1, "Failed to link main prototype", identifier, DEBUG_INFO);
+	assert(unlinkedPrototypes.size() == 1, "Failed to link main prototype", identifierBuilder, DEBUG_INFO);
 	main = unlinkedPrototypes.back();
 	assert((main->header.flags & BC_PROTO_VARARG)
 		&& !main->header.parameters
 		&& !main->upvalues.size(),
-		"Main prototype has invalid header", identifier, DEBUG_INFO);
+		"Main prototype has invalid header", identifierBuilder, DEBUG_INFO);
 	prototypes.shrink_to_fit();
 }
 
 void Bytecode::read_file(const uint32_t& byteCount) {
-	assert(bytesUnread >= byteCount, "Read would exceed end of file", identifier, DEBUG_INFO);
+	assert(bytesUnread >= byteCount, "Read would exceed end of file", identifierBuilder, DEBUG_INFO);
 	fileBuffer.resize(byteCount);
 	read_buffer(byteCount);
 	bytesUnread -= byteCount;
@@ -85,7 +85,7 @@ bool Bytecode::buffer_next_block() {
 	const uint32_t byteCount = read_uleb128();
 
 	if (!byteCount) {
-		assert(!bytesUnread, "Read unexpectedly reached end of file", identifier, DEBUG_INFO);
+		assert(!bytesUnread, "Read unexpectedly reached end of file", identifierBuilder, DEBUG_INFO);
 		return false;
 	}
 
