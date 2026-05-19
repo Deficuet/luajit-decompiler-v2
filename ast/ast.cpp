@@ -826,7 +826,7 @@ void Ast::build_expressions(Function& function, std::vector<Statement*>& block) 
 			case Bytecode::BC_OP_RETM:
 			case Bytecode::BC_OP_RET:
 			case Bytecode::BC_OP_RET1:
-				block[i]->assignment.expressions.resize(block[i]->instruction.d + (block[i]->instruction.type == Bytecode::BC_OP_RETM ? 0 : -1), nullptr);
+				block[i]->assignment.expressions.resize(block[i]->instruction.type == Bytecode::BC_OP_RET1 ? 1 : block[i]->instruction.d + (block[i]->instruction.type == Bytecode::BC_OP_RETM ? 0 : -1), nullptr);
 
 				for (uint8_t j = 0; j < block[i]->assignment.expressions.size(); j++) {
 					block[i]->assignment.expressions[j] = new_slot(block[i]->instruction.a + j);
@@ -1274,6 +1274,15 @@ void Ast::build_slot_scopes(Function& function, std::vector<Statement*>& block, 
 									if (block[j]->assignment.variables.size() == 1) {
 										switch (block[j]->assignment.variables.back().type) {
 										case AST_VARIABLE_SLOT:
+											if (block[j]->function) {
+												for (uint8_t k = block[j]->function->upvalues.size(); k--;) {
+													if (!block[j]->function->upvalues[k].local || block[j]->function->upvalues[k].slot != targetSlot) continue;
+													isPossibleCondition = false;
+													break;
+												}
+
+												if (!isPossibleCondition) break;
+											}
 										case AST_VARIABLE_TABLE_INDEX:
 											continue;
 										}
@@ -1307,13 +1316,7 @@ void Ast::build_slot_scopes(Function& function, std::vector<Statement*>& block, 
 								for (uint32_t j = conditionBlocks.size(); isPossibleCondition && j--;) {
 									for (uint32_t k = conditionBlocks[j].size(); k--;) {
 										if (!function.is_valid_label(conditionBlocks[j][k]->instruction.label)
-											|| ((function.labels[conditionBlocks[j][k]->instruction.label].jumpIds.front() >= conditionBlocks[j].front()->instruction.id
-													|| !k
-													|| (hasBoolConstruct
-														&& conditionBlocks[j][k - 1]->type == AST_STATEMENT_CONDITION
-														&& (conditionBlocks[j][k - 1]->instruction.target == block[i]->instruction.id
-															|| conditionBlocks[j][k - 1]->instruction.target == block[i - 2]->instruction.id)))
-												&& function.labels[conditionBlocks[j][k]->instruction.label].jumpIds.back() < conditionBlocks[j][k]->instruction.id))
+											|| function.labels[conditionBlocks[j][k]->instruction.label].jumpIds.back() < conditionBlocks[j][k]->instruction.id)
 											continue;
 										isPossibleCondition = false;
 										break;
@@ -1558,6 +1561,7 @@ void Ast::eliminate_slots(Function& function, std::vector<Statement*>& block, Bl
 				break;
 			case AST_VARIABLE_TABLE_INDEX:
 				if (!block[i]->assignment.variables.back().isMultres
+					&& block[i]->assignment.variables.back().tableIndex->type == AST_EXPRESSION_VARIABLE
 					&& i >= 3
 					&& !function.is_valid_label(block[i]->instruction.label)
 					&& !function.is_valid_label(block[i - 1]->instruction.label)
@@ -2052,19 +2056,22 @@ void Ast::eliminate_conditions(Function& function, std::vector<Statement*>& bloc
 			index = INVALID_ID;
 
 			for (uint32_t j = function.labels[targetLabel].jumpIds.size(); j--;) {
-				if (function.labels[targetLabel].jumpIds[j] > block[i]->instruction.id) continue;
-				index = get_block_index_from_id(block, function.labels[targetLabel].jumpIds[j]);
+				if (function.labels[targetLabel].jumpIds[j] >= function.labels[targetLabel].target) continue;
+				index = get_block_index_from_id(block, function.labels[targetLabel].jumpIds[j] - 1);
 				if (index == INVALID_ID) break;
 
 				switch (block[index]->type) {
 				case AST_STATEMENT_CONDITION:
 					if (!block[index]->assignment.variables.size()) {
-						index = INVALID_ID;
 						if (targetLabel == extendedTargetLabel
 							|| (block[index]->assignment.expressions.size() == 1
 								&& block[index]->assignment.expressions.back()->type == AST_EXPRESSION_VARIABLE
-								&& block[index]->assignment.expressions.back()->variable->type == AST_VARIABLE_SLOT))
+								&& block[index]->assignment.expressions.back()->variable->type == AST_VARIABLE_SLOT)) {
+							index = INVALID_ID;
 							continue;
+						}
+
+						index = INVALID_ID;
 					}
 						
 					break;
@@ -2294,13 +2301,19 @@ void Ast::eliminate_conditions(Function& function, std::vector<Statement*>& bloc
 					|| block[j]->assignment.variables.size()
 					|| (block[j]->instruction.target == function.labels[targetLabel].target
 						? targetLabel != extendedTargetLabel
-						//TODO
 						|| (block[j]->assignment.expressions.size() == 1
 							&& block[j]->assignment.expressions.back()->type == AST_EXPRESSION_VARIABLE
 							&& block[j]->assignment.expressions.back()->variable->type == AST_VARIABLE_SLOT
 							&& block[j]->assignment.expressions.back()->variable->slot == block[assignmentIndex]->assignment.variables.back().slot)
 						: block[j]->instruction.target != function.labels[extendedTargetLabel].target)
-					? function.get_label_from_id(block[j]->instruction.target) : function.labels.size(), &block[j]->assignment.expressions);
+					? function.get_label_from_id(block[j]->instruction.target) : function.labels.size(), &block[j]->assignment.expressions,
+					block[j]->instruction.target == function.labels[targetLabel].target
+					&& !hasEndAssignment
+					&& block[j]->assignment.expressions.size() == 1
+					&& block[j]->assignment.expressions.back()->type == AST_EXPRESSION_VARIABLE
+					&& block[j]->assignment.expressions.back()->variable->type == AST_VARIABLE_SLOT
+					&& block[j]->assignment.expressions.back()->variable->slot == block[assignmentIndex]->assignment.variables.back().slot
+					&& targetLabel == extendedTargetLabel);
 				continue;
 			case AST_STATEMENT_ASSIGNMENT:
 				switch (block[j]->assignment.expressions.back()->constant->type) {
